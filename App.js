@@ -8,12 +8,11 @@ import {
   TouchableHighlight, 
   TextInput, 
   Dimensions, 
+  TouchableOpacity, 
 } from 'react-native';
-
-
+import {keyboardData} from './keyboard.js';
 
 export default function App() {
-
   let textArray = []
   for (var i = 0; i < 30; i++) {
     textArray[i] = {
@@ -27,6 +26,8 @@ export default function App() {
   const [line, setLine] = useState(0);
   const [input, setInput] = useState('');
   const [wordRight, setWordRight] = useState('LUKIS');
+  const [keyPress, setKeypress] = useState('');
+  const [keyboard, setKeyboard] = useState([...keyboardData]); 
 
   const keyHandler = (newText) => {
     setInput(newText);
@@ -49,64 +50,75 @@ export default function App() {
   const submitHandler = () => {
 
     //exit function call if length is less than 5
-    if (input.length < 5) {
+    if (keyPress.length < 5) {
       return; 
     }
 
-    var text = input.substring(0, 5);
+    var text = keyPress.substring(0, 5);
+    setKeypress('');
 
     if (text.localeCompare(wordRight)) {
-      alert('you have won!');
+      //if won
     }
 
     //get the result of each input placed by the user
     var startingIndex = line * 5;
     var textArrayCopy = letters;
-
+    
     var j = 0;
+    var indexKeyboard;
+    var keyboardCopy = [...keyboard]; 
     for (var i = startingIndex; i < startingIndex + 5; i++) {
       var isRightNew = false; 
       var ispositionRightNew = false;
-      var char = letters[i].value
+      var char = letters[i].value;
+
+      for (let k = 0; k < keyboard.length; k++) {
+        if (keyboard[k].value == char) {
+          indexKeyboard = k; 
+          break;
+        }
+      }
+      console.log(indexKeyboard);
+      var color; 
       //if correct 
       if (char == wordRight.charAt(j)) {
         textArrayCopy[i].isRight = true; 
-        textArrayCopy[i].color = '#538D4E'; 
+        color = '#538D4E'; 
       }
       //if position wrong
       else if (wordRight.indexOf(char) > -1) {
         textArrayCopy[i].isPositionRight = true; 
-        textArrayCopy[i].color = '#B59F3B'; 
+        color = '#B59F3B'; 
       }
       //if both wrong
       else {
         textArrayCopy[i].isRight = false; 
         textArrayCopy[i].isPositionRight = false; 
+        color = '#3A3A3C'; 
       }
+      textArrayCopy[i].color = color; 
+      keyboardCopy[indexKeyboard].color = color;
       j++;
     };
 
-    console.log(textArrayCopy);
     setLetters([...textArrayCopy]);
     setLine(line + 1);
-    setInput('');
+    setKeyboard([...keyboardCopy]);
+    setKeypress(''); 
   }
 
+  const keyPressHandler = (key) => {
+    if (key == '✓') {
+      submitHandler(); 
+      return; 
+    }
+    var keyPressCopy = keyPress + key; 
+    setKeypress(keyPressCopy);
+    keyHandler(keyPressCopy);
+  } 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={{
-          position: 'absolute', 
-          height: '25%', 
-          width: '60%', 
-          backgroundColor: 'white', 
-          elevation: 2, 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-           
-        }}>
-          <Text stle={styles.promptText}>YOU'VE WON</Text> 
-          <Text stle={styles.promptText}>NEXT</Text>
-      </View>
+    <SafeAreaView style={styles.container}>                         
       <Text style={styles.title}>Infinite Wordle</Text>
       <View style={styles.wordsContainer}>
         {letters.map((letter, index) => {
@@ -136,15 +148,36 @@ export default function App() {
           }
         }     
         )}
-      </View>        
-      <TextInput 
-        caretHidden={true} 
-        style={styles.invisibleInput}
-        value={input}
-        onChangeText={(newText) => keyHandler(newText)}
-        onSubmitEditing={submitHandler}
-      />
-      <StatusBar style="auto"/>
+      </View>  
+      <View style={styles.keyboard}>
+        {keyboard.map((key, index) => {
+          return (
+            <View style={{
+              backgroundColor: '#121213', 
+              height: String((100/3) + '%'), 
+              width: String(10 * key.size + '%'), 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+            }} key={index}>
+              <TouchableOpacity style={{
+                justifyContent: 'center',
+                width: '90%', 
+                height: '90%', 
+                borderRadius: 5, 
+                backgroundColor: key.color, 
+              }} onPress={() => keyPressHandler(key.value)}>
+                <Text style={{
+                  fontSize: 25, 
+                  fontFamily: 'sans-serif', 
+                  textAlign: 'center', 
+                  color: '#FFFFFF', 
+                }}>{key.value}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+      </View>
+
     </SafeAreaView>
   );
 }
@@ -156,13 +189,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#121213',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 40, 
   },
-  promptText: {
-    color: 'blue', 
+  promptTextWin: {
     padding: 10, 
-    fontSize: 30, 
-    fontFamily: 'notoserif', 
+    fontSize: 70, 
+    fontFamily: 'Roboto',
+    fontWeight: 'bold',  
+    color: '#80ed99', 
+  }, 
+  promptTextNext: {
+    color: '#7B7B7B', 
+    padding: 10, 
+    fontSize: 25, 
+    fontFamily: 'Roboto', 
   }, 
   title: {
     fontSize: 50, 
@@ -210,6 +251,16 @@ const styles = StyleSheet.create({
     fontSize: 38,
     fontWeight: 'bold', 
     color: '#ffffff', 
+  }, 
+
+  keyboard: {
+    height: '30%',
+    width: '100%', 
+    backgroundColor: '#121213', 
+    position: 'absolute', 
+    bottom: 0, 
+    flexDirection: 'row', 
+    flexWrap: 'wrap'
   }
   //green = #538D4E
   //yellow = #B59F3B
