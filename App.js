@@ -1,3 +1,4 @@
+//TODO:fix error with keypress
 import { StatusBar } from 'expo-status-bar';
 import { useState, useRef} from 'react';
 import { 
@@ -13,9 +14,14 @@ import {
   Animated, 
   Vibration, 
   Button, 
+  RefreshControl, 
 } from 'react-native';
 import {keyboardData} from './keyboard.js';
-import { scanDictionary } from './dictionary-eng.js';
+import { scanDictionary, randomDictionary } from './dictionary-eng.js';
+
+const wait = timeout => {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+};
 
 export default function App() {
   let textArray = []
@@ -29,20 +35,23 @@ export default function App() {
   }
   const [letters, setLetters] = useState(textArray);
   const [line, setLine] = useState(0);
-  const [wordRight, setWordRight] = useState('WORDS');
+  const [wordRight, setWordRight] = useState(randomDictionary);
   const [keyPress, setKeypress] = useState('');
   const [keyboard, setKeyboard] = useState([...keyboardData]); 
   const [dictionary, setDictionary] = useState(dictionary);
   const [blurScreen, setBlurScreen] = useState(false); 
   const [keyboardVisibility, setKeyboardVisibility] = useState(true); 
-  const [winTextVisibility, setwinTextVisibility] = useState(false); 
+  const [winText, setWinText] = useState('🆆🅾🅽'); 
+  const [winTextVisibility, setwinTextVisibility] = useState(true); 
+
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const winTextAnimPosition = useRef(new Animated.Value(0)).current;
   const winTextAnimOpacity = useRef(new Animated.Value(0)).current;
+  const reloadAnim = useRef(new Animated.Value(1)).current; 
   
   const fadeInOut = () => {
-    // Will change fadeAnim value to 1 in 5 seconds
+    // Will change fadeAnim value to 1 in 5 seconds 
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 10, 
@@ -77,14 +86,13 @@ export default function App() {
     }).start();
   };
 
-  const winTextretrieve = () => {
-    //TODO:retrieve wintext when blurred background is pressed
+  const winTextRetrieve = () => {
     //unblur the background
     if (winTextVisibility) {
       setwinTextVisibility(false); 
       Animated.timing(winTextAnimOpacity, {
         toValue: 0, 
-        duration: 2, 
+        duration: 200, 
         useNativeDriver: false, 
       }).start();
     }
@@ -92,13 +100,69 @@ export default function App() {
       setwinTextVisibility(true);
       Animated.timing(winTextAnimOpacity, {
         toValue: 1, 
-        duration: 2, 
+        duration: 200, 
         useNativeDriver: false, 
       }).start();
     }
-
   };
 
+  const rotateThenReload = () => {
+    Animated.spring(reloadAnim, {
+      toValue: 2, 
+      duration: 250, 
+      useNativeDriver: false, 
+    }).start();
+    setTimeout(() => {
+      Animated.spring(reloadAnim, {
+        toValue: 1, 
+        duration: 250, 
+        useNativeDriver: false, 
+      }).start();
+    }, 250);
+    
+    //restart the whole app
+    let textArray = []
+    for (var i = 0; i < 30; i++) {
+      textArray[i] = {
+        value: '', 
+        isRight: null, 
+        isPositionRight: null,
+        color: '#3A3A3C', 
+      }
+    }
+    setLetters([...textArray]);
+    setLine(0);
+    setWordRight(randomDictionary);
+    setKeypress('');
+
+    var keyboardCopy = keyboard; 
+    for (var i = 0; i < keyboard.length; i++) {
+      if(keyboardCopy[i].value != null) {
+        keyboardCopy[i].color = '#818384';
+      }
+    }
+    setKeyboard([...keyboardCopy]); 
+    setWordRight(randomDictionary()); 
+    
+    setDictionary(dictionary);
+    setBlurScreen(false); 
+    setKeyboardVisibility(true); 
+    setwinTextVisibility(true); 
+  
+    //TODO: reset back all animations
+    setTimeout(() => {
+        Animated.timing(winTextAnimOpacity, {
+          toValue: 0, 
+          duration: 500, 
+          useNativeDriver: false, 
+        }).start();
+        Animated.spring(winTextAnimPosition, {
+          toValue: -(windowHeight/2 - windowHeight * 0.3/2),
+          useNativeDriver: false, 
+          duration: 1000,  
+        }).start();
+      }, 600);
+  }
 
   const keyHandler = (newText) => {
     var j = 0;
@@ -118,7 +182,7 @@ export default function App() {
   }
 
   const submitHandler = () => {
-
+    console.log(wordRight); 
     //exit function call if length is less than 5
     if (keyPress.length < 5) {
       return; 
@@ -135,8 +199,9 @@ export default function App() {
     //if not inside dictionary
     else {
       setKeypress('');
-
+      console.log(text); 
       if (text === wordRight) {
+        setWinText('🆆🅾🅽');
         winTextPrompt();
       }
 
@@ -184,13 +249,16 @@ export default function App() {
       setLine(line + 1);
       setKeyboard([...keyboardCopy]);
       setKeypress(''); 
+      if (line === 5) {
+        setWinText('🅻🅾🆂🅴'); 
+        winTextPrompt(); 
+      }
     }
   }
 
   const keyPressHandler = (key) => {
     //if backspace is pressed
     if (key == '⌫') {  
-      console.log(letters);
       var letterIndex; 
       if (letters[0].value === '') {
         return; 
@@ -201,8 +269,6 @@ export default function App() {
           break; 
         }
       }
-      console.log(letterIndex); 
-      console.log(line * 5 - 1); 
       if (letterIndex == (line * 5 - 1)) {
         return; 
       }
@@ -231,8 +297,9 @@ export default function App() {
   } 
   return (
     <SafeAreaView style={styles.container}>   
-      { blurScreen && <TouchableHighlight onPress={() => winTextretrieve} style={styles.blurContainer}>
-        <Text style={{height: '100%', width: '100%'}}>Hello world</Text>
+      { blurScreen && <TouchableHighlight onPress={winTextRetrieve} style={styles.blurContainer}>
+        <Text style={{height: '100%', 
+      }}></Text>
       </TouchableHighlight>
       }
       <Text style={styles.title}>Infinite Wordle</Text>
@@ -307,20 +374,24 @@ export default function App() {
       >
         <Text style={styles.fadingText}>Not in word list!</Text>
       </Animated.View>
-
       <Animated.View
-        style={[
-          styles.winTextContainer, {
-            // Bind opacity to animated value
-            top: winTextAnimPosition, 
-            opacity: winTextAnimOpacity, 
-          }
-        ]}
-      >
-        <Text style={styles.winText}>🆆🅾🅽</Text>
-        <Text style={styles.reloadIcon}>↻</Text>
+          style={[
+            styles.winTextContainer, {
+              // Bind opacity to animated value
+              top: winTextAnimPosition, 
+              opacity: winTextAnimOpacity, 
+            }
+          ]}
+        >
+        <Text style={styles.winText}>{winText}</Text>
+        <Animated.View style={{transform: [{scale: reloadAnim}]}}> 
+          <TouchableWithoutFeedback onPress={rotateThenReload}>
+            <View>
+              <Text style={styles.reloadIcon}>↻</Text>
+            </View>
+          </TouchableWithoutFeedback>
+        </Animated.View>
       </Animated.View>
-
     </SafeAreaView>
   );
 }
