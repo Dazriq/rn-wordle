@@ -59,7 +59,7 @@ export const keyboardData = [
   }, 
   {
     value: null, 
-    color: '#121213', 
+    color: '#242232', 
     size: 0.5
   }, 
   {
@@ -110,8 +110,8 @@ export const keyboardData = [
     size: 1, 
   }, 
   {
-    value: '', 
-    color: '#121213', 
+    value: null, 
+    color: '#242232', 
     size: 0.5, 
   }, 
   {

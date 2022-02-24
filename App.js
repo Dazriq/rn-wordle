@@ -8,13 +8,11 @@ import {
   SafeAreaView, 
   TouchableWithoutFeedback, 
   TouchableHighlight, 
-  TextInput, 
   Dimensions, 
   TouchableOpacity, 
   Animated, 
   Vibration, 
-  Button, 
-  RefreshControl, 
+  Image, 
 } from 'react-native';
 import {keyboardData} from './keyboard.js';
 import { scanDictionary, randomDictionary } from './dictionary-eng.js';
@@ -42,7 +40,8 @@ export default function App() {
   const [blurScreen, setBlurScreen] = useState(false); 
   const [keyboardVisibility, setKeyboardVisibility] = useState(true); 
   const [winText, setWinText] = useState('🆆🅾🅽'); 
-  const [winTextVisibility, setwinTextVisibility] = useState(true); 
+  const [winTextVisibility, setWinTextVisibility] = useState(false); 
+  const [wordRightVisibility, setWordRightVisibility] = useState(false);
 
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -68,11 +67,11 @@ export default function App() {
 
   const winTextPrompt = () => {
     //Vibration.vibrate(500); 
-    setwinTextVisibility(true);   
     Vibration.vibrate([15,500], false);
     //blur the background
     setBlurScreen(true); 
     setKeyboardVisibility(false);
+    setWordRightVisibility(true);
     // Will change fadeAnim value to 1 in 5 seconds
     Animated.timing(winTextAnimOpacity, {
       toValue: 1, 
@@ -88,8 +87,14 @@ export default function App() {
 
   const winTextRetrieve = () => {
     //unblur the background
+    if (wordRightVisibility) {
+      setWordRightVisibility(false);
+    }
+    else {
+      setWordRightVisibility(true); 
+    }
     if (winTextVisibility) {
-      setwinTextVisibility(false); 
+      setWinTextVisibility(false); 
       Animated.timing(winTextAnimOpacity, {
         toValue: 0, 
         duration: 200, 
@@ -97,7 +102,7 @@ export default function App() {
       }).start();
     }
     else {
-      setwinTextVisibility(true);
+      setWinTextVisibility(true); 
       Animated.timing(winTextAnimOpacity, {
         toValue: 1, 
         duration: 200, 
@@ -137,7 +142,7 @@ export default function App() {
 
     var keyboardCopy = keyboard; 
     for (var i = 0; i < keyboard.length; i++) {
-      if(keyboardCopy[i].value != null) {
+      if(keyboardCopy[i].value !== null) {
         keyboardCopy[i].color = '#818384';
       }
     }
@@ -147,7 +152,7 @@ export default function App() {
     setDictionary(dictionary);
     setBlurScreen(false); 
     setKeyboardVisibility(true); 
-    setwinTextVisibility(true); 
+    setWordRightVisibility(false);
   
     //TODO: reset back all animations
     setTimeout(() => {
@@ -182,7 +187,6 @@ export default function App() {
   }
 
   const submitHandler = () => {
-    console.log(wordRight); 
     //exit function call if length is less than 5
     if (keyPress.length < 5) {
       return; 
@@ -199,7 +203,6 @@ export default function App() {
     //if not inside dictionary
     else {
       setKeypress('');
-      console.log(text); 
       if (text === wordRight) {
         setWinText('🆆🅾🅽');
         winTextPrompt();
@@ -249,6 +252,7 @@ export default function App() {
       setLine(line + 1);
       setKeyboard([...keyboardCopy]);
       setKeypress(''); 
+      setWinTextVisibility(true); 
       if (line === 5) {
         setWinText('🅻🅾🆂🅴'); 
         winTextPrompt(); 
@@ -257,6 +261,9 @@ export default function App() {
   }
 
   const keyPressHandler = (key) => {
+    if (key === null) {
+      return; 
+    }
     //if backspace is pressed
     if (key == '⌫') {  
       var letterIndex; 
@@ -274,8 +281,14 @@ export default function App() {
       }
       
       var keyPressCopy = keyPress; 
-      keyPressCopy = keyPressCopy.substring(0, keyPressCopy.length - 1); 
-      setKeypress(keyPressCopy); 
+      if (keyPressCopy.length >= 5) {
+        keyPressCopy = keyPressCopy.substring(0, 4); 
+      }
+      else {
+        keyPressCopy = keyPressCopy.substring(0, keyPressCopy.length - 1); 
+      }
+
+      setKeypress(keyPressCopy);  
 
       var lettersCopy = letters; 
       lettersCopy[letterIndex].value = ''; 
@@ -302,7 +315,8 @@ export default function App() {
       }}></Text>
       </TouchableHighlight>
       }
-      <Text style={styles.title}>Infinite Wordle</Text>
+      <Text style={styles.title}>Wordle Infinite</Text>
+
       <View style={styles.wordsContainer}>
         {letters.map((letter, index) => {
           if (letter.value == '') {
@@ -320,7 +334,7 @@ export default function App() {
                   width: '20%', 
                   height: '16.6666666666666666666667%', 
                   borderWidth: 3, 
-                  borderColor: '#121213', 
+                  borderColor: '#242232', 
                   justifyContent: 'center', 
                   backgroundColor: letter.color, 
                   }} 
@@ -337,7 +351,7 @@ export default function App() {
         {keyboard.map((key, index) => {
           return (
             <View style={{
-              backgroundColor: '#121213', 
+              backgroundColor: '#242232', 
               height: String((100/3) + '%'), 
               width: String(10 * key.size + '%'), 
               justifyContent: 'center', 
@@ -375,14 +389,14 @@ export default function App() {
         <Text style={styles.fadingText}>Not in word list!</Text>
       </Animated.View>
       <Animated.View
-          style={[
-            styles.winTextContainer, {
-              // Bind opacity to animated value
-              top: winTextAnimPosition, 
-              opacity: winTextAnimOpacity, 
-            }
-          ]}
-        >
+        style={[
+          styles.winTextContainer, {
+            // Bind opacity to animated value
+            top: winTextAnimPosition, 
+            opacity: winTextAnimOpacity, 
+          }
+        ]}
+      >
         <Text style={styles.winText}>{winText}</Text>
         <Animated.View style={{transform: [{scale: reloadAnim}]}}> 
           <TouchableWithoutFeedback onPress={rotateThenReload}>
@@ -392,6 +406,11 @@ export default function App() {
           </TouchableWithoutFeedback>
         </Animated.View>
       </Animated.View>
+      {wordRightVisibility && 
+        <View style={styles.wordRightContainer}>
+          <Text style={styles.wordRight}>{wordRight}</Text>
+        </View>
+      }
     </SafeAreaView>
   );
 }
@@ -401,7 +420,7 @@ const windowHeight = Dimensions.get('window').height;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121213',
+    backgroundColor: '#242232',
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingTop: 40, 
@@ -418,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 20, 
     fontFamily: 'sans-serif', 
     padding: 10, 
-    color: '#121213'
+    color: '#242232'
   },
 
   title: {
@@ -426,8 +445,7 @@ const styles = StyleSheet.create({
     paddingBottom: 5, 
     fontFamily: 'sans-serif-condensed', 
     fontWeight: 'bold', 
-    color: '#ffffff', 
-    
+    color: '#F62188', 
   }, 
   wordsContainer: {
     height: windowHeight * 0.5, 
@@ -439,7 +457,7 @@ const styles = StyleSheet.create({
     width: '20%', 
     height: '16.6666666666666666666667%', 
     borderWidth: 3, 
-    borderColor: '#121213', 
+    borderColor: '#242232', 
     justifyContent: 'center', 
     backgroundColor: '#3A3A3C', 
   },
@@ -449,7 +467,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderColor: '#3A3A3C',
     borderWidth: 2,
-    backgroundColor: '#121213', 
+    backgroundColor: '#242232', 
   }, 
 
   letter: {
@@ -463,7 +481,7 @@ const styles = StyleSheet.create({
   keyboard: {
     height: '30%',
     width: '100%', 
-    backgroundColor: '#121213', 
+    backgroundColor: '#242232', 
     position: 'absolute', 
     bottom: 0, 
     flexDirection: 'row', 
@@ -474,10 +492,10 @@ const styles = StyleSheet.create({
     top: '5%', 
     height: '100%',
     width: '100%',  
-    backgroundColor: '#121213', 
+    backgroundColor: '#242232', 
     position: 'absolute', 
     elevation: 4, 
-    opacity: 0.8, 
+    opacity: 0.6, 
   },
 
   winTextContainer: {
@@ -505,6 +523,21 @@ const styles = StyleSheet.create({
     fontSize: 100, 
     fontFamily: 'sans-serif-medium', 
     textAlign: 'center', 
+  }, 
+
+  wordRightContainer: {
+    position: 'absolute', 
+    elevation: 4,    
+    bottom: 0, 
+    height: '30%', 
+    width: '100%', 
+    justifyContent: 'flex-start', 
+  }, 
+  wordRight: {
+    fontSize: 50, 
+    color: '#538D4E', 
+    fontFamily: 'sans-serif-medium',
+    textAlign: 'center',  
   }
   //green = #538D4E
   //yellow = #B59F3B

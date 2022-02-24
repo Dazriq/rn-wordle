@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "rn-wordle",
+    "name": "Wordle Infinite",
     "slug": "rn-wordle",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/adaptive-icon.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#242323"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -23,7 +23,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.dazriq.rnwordle"
     },
     "web": {
       "favicon": "./assets/favicon.png"
